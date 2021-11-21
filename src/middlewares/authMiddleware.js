@@ -2,7 +2,7 @@ const { verifyAccessToken } = require('../services/jwt');
 const ApiError = require('../utils/ApiError');
 
 function authMiddleware(req, res, next) {
-  const accessToken = req.headers.authorization?.split(' ')[0];
+  const accessToken = req.headers.authorization?.split(' ')[1];
 
   try {
     if (accessToken == null) {

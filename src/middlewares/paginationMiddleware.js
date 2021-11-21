@@ -6,7 +6,6 @@ function paginationMiddleware(req, res, next) {
 
   const getPaginationInfo = async (model) => {
     const totalItems = await model.count();
-    console.log(totalItems)
     const totalPages = Math.ceil(totalItems / limit);
     const currentPage = page + 1;
 

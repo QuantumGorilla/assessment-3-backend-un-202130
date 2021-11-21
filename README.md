@@ -5,11 +5,6 @@
 npm install
 ```
 
-## Run in development
-```bash
-docker-compose up
-```
-
 ## Run tests
 ```bash
 npm run test

@@ -174,5 +174,5 @@ module.exports = {
   deactivateUser,
   loginUser,
   getAllUsers,
-  updatePassword
+  updatePassword,
 };

@@ -13,7 +13,8 @@
     "db:migrate": "cd ./src/database && sequelize db:migrate",
     "db:migrate:undo": "cd ./src/database && sequelize db:migrate:undo",
     "db:migration:generate": "cd ./src/database && sequelize migration:generate",
-    "db:model:generate": "cd ./src/database && sequelize model:generate"
+    "db:model:generate": "cd ./src/database && sequelize model:generate",
+    "linter": "eslint bin/www src/**/*.js app.js"
   },
   "author": "sjdonado",
   "license": "GPL-3.0",

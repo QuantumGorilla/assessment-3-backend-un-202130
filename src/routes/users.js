@@ -9,7 +9,7 @@ const {
   deactivateUser,
   loginUser,
   getAllUsers,
-  updatePassword
+  updatePassword,
 } = require('../controllers/users');
 
 const { authMiddleware } = require('../middlewares/authMiddleware');

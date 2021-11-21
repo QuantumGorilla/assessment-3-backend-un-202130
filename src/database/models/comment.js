@@ -1,7 +1,7 @@
-'use strict';
 const {
-  Model
+  Model,
 } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
   class Comment extends Model {
     /**
@@ -10,16 +10,16 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-     Comment.belongsTo(models.User, {
+      Comment.belongsTo(models.User, {
         foreignKey: 'tweetId',
-        onDelete: 'CASCADE'
-      })
+        onDelete: 'CASCADE',
+      });
     }
-  };
+  }
   Comment.init({
     text: DataTypes.STRING,
     tweetId: DataTypes.INTEGER,
-    likeCounter: DataTypes.INTEGER
+    likeCounter: DataTypes.INTEGER,
   }, {
     sequelize,
     modelName: 'Comment',

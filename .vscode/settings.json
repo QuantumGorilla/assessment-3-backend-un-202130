@@ -6,5 +6,6 @@
   "search.exclude": {
     "package-lock.json": true,
 		"coverage/**": true
-  }
+  },
+  "eslint.validate": ["javascript"]
 }

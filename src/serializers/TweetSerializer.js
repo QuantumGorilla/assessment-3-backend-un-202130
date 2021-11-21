@@ -8,8 +8,6 @@ class TweetSerializer extends BaseSerializer {
     delete serializedModel?.User?.active;
     delete serializedModel?.User?.role;
     delete serializedModel?.userId;
-    
-
     super('success', serializedModel);
   }
 }

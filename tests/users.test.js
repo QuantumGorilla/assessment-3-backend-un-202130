@@ -299,4 +299,165 @@ describe('Users routes', () => {
     expect(response.body.data[0].password).toBeUndefined();
     expect(response.body.data[0].active).toBeUndefined();
   });
+
+  it('Should create a comment', async () => {
+    const tweetResponse = await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Hola' });
+    const tweetId = tweetResponse.body.data.id;
+    const commentResponse = await request(app)
+      .post(`/tweets/${tweetId}/comments`)
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Cómo estás' });
+    const { body } = commentResponse;
+    const { status, data } = body;
+    const { text } = data;
+    expect(status).toBe('success');
+    expect(text).toBe('Cómo estás');
+  });
+
+  it('Should like a comment', async () => {
+    const tweetResponse = await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Hola' });
+    const tweetId = tweetResponse.body.data.id;
+    const commentResponse = await request(app)
+      .post(`/tweets/${tweetId}/comments`)
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Cómo estás' });
+    const commentId = commentResponse.body.data.id;
+    const likeResponse = await request(app)
+      .post(`/comments/${commentId}/likes`)
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const commentLikes = likeResponse.body.data.likeCounter;
+    expect(commentLikes).toBe(1);
+  });
+
+  it('Should delete comment', async () => {
+    const tweetResponse = await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Hola' });
+    const tweetId = tweetResponse.body.data.id;
+    const commentResponse = await request(app)
+      .post(`/tweets/${tweetId}/comments`)
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Cómo estás' });
+    const commentId = commentResponse.body.data.id;
+    const deleteResponse = await request(app)
+      .delete(`/comments/${commentId}`)
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const result = deleteResponse.status;
+    expect(result).toBe(200);
+  });
+
+  it('Should delete tweet', async () => {
+    const tweetResponse = await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Hola' });
+    const tweetId = tweetResponse.body.data.id;
+    const deleteResponse = await request(app)
+      .delete(`/tweets/${tweetId}`)
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const result = deleteResponse.status;
+    expect(result).toBe(200);
+  });
+
+  it('Should not create a comment if there\'s no text', async () => {
+    const tweetResponse = await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Hola' });
+    const tweetId = tweetResponse.body.data.id;
+    const commentResponse = await request(app)
+      .post(`/tweets/${tweetId}/comments`)
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const result = commentResponse.status;
+    const { status } = commentResponse.body;
+    expect(result).toBe(400);
+    expect(status).toBe('Payload must contain text');
+  });
+
+  it('Should not comment unexisting tweets', async () => {
+    const commentResponse = await request(app)
+      .post('/tweets/99999/comments')
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const result = commentResponse.status;
+    expect(result).toBe(400);
+  });
+
+  it('Should not delete unexisting comments', async () => {
+    const deleteResponse = await request(app)
+      .delete('/comments/99999999')
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const result = deleteResponse.status;
+    expect(result).toBe(404);
+  });
+
+  it('Should like a tweet', async () => {
+    const tweetResponse = await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Hola' });
+    const tweetId = tweetResponse.body.data.id;
+    const likeResponse = await request(app)
+      .post(`/tweets/${tweetId}/likes`)
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const tweetLikes = likeResponse.body.data.likeCounter;
+    expect(tweetLikes).toBe(1);
+  });
+
+  it('Should find tweets', async () => {
+    const tweetResponse = await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Hola' });
+    const tweetId = tweetResponse.body.data.id;
+    const searchResponse = await request(app)
+      .get(`/tweets/${tweetId}`);
+    const tweetText = searchResponse.body.data.text;
+    expect(tweetText).toBe('Hola');
+  });
+
+  it('Should not find unexisting tweets', async () => {
+    const tweetId = -999999;
+    const searchResponse = await request(app)
+      .get(`/tweets/${tweetId}`);
+    const { data } = searchResponse.body;
+    expect(data).toBe(null);
+  });
+
+  it('Should not delete tweets that the user does not own', async () => {
+    const tweetResponse = await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Hola' });
+    const tweetId = tweetResponse.body.data.id;
+    const deleteResponse = await request(app)
+      .delete(`/tweets/${tweetId}`)
+      .set('Authorization', `bearer ${secondUserAccessToken}`);
+    const result = deleteResponse.status;
+    expect(result).toBe(403);
+  });
+
+  it("Should show all user's tweets", async () => {
+    await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Buenos días amiguitos' });
+    await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'cómo están' });
+    await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Muy bien!' });
+    const response = await request(app).get(`/tweets/feed/${FIRST_USER.username}`);
+    const { data } = response.body;
+    expect(data.length).toBe(3);
+  });
 });

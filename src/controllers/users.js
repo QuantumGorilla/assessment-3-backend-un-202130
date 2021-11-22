@@ -1,3 +1,4 @@
+const nodemailer = require('nodemailer');
 const ApiError = require('../utils/ApiError');
 
 const { User } = require('../database/models');
@@ -160,6 +161,27 @@ const updatePassword = async (req, res, next) => {
     Object.assign(user, userPayload);
 
     await user.save();
+
+    const mailTransporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'admin@gmail.com',
+        pass: 'admin',
+      },
+    });
+
+    const mailDetails = {
+      from: 'admin@gmail.com',
+      to: user.email,
+      subject: 'Password updated successfully',
+      text: 'Your password has been changed. If you haven\'t done this change, please contact us. ',
+    };
+
+    mailTransporter.sendMail(mailDetails, (err, data) => {
+      if (err) {
+        throw new ApiError('Email not found', 404);
+      }
+    });
 
     res.json(new UserSerializer(user));
   } catch (err) {

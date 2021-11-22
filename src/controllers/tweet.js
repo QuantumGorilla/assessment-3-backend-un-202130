@@ -78,7 +78,7 @@ const deleteTweet = async (req, res, next) => {
     }
 
     await tweet.destroy();
-    res.status(204).json({ data: null });
+    res.status(200).json({ status: 'success' });
   } catch (err) {
     next(err);
   }

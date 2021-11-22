@@ -33,7 +33,7 @@ const likeComment = async (req, res, next) => {
     if (!comment) {
       throw new ApiError('Comment not found', 404);
     }
-    comment.likeCounter += comment.likeCounter + 1;
+    comment.likeCounter += 1;
     await comment.save();
     res.json(new CommentSerializer(comment));
   } catch (err) {
@@ -48,9 +48,8 @@ const deleteComment = async (req, res, next) => {
     if (!comment) {
       throw new ApiError('Comment not found', 404);
     }
-
     await comment.destroy();
-    res.status(204).json({ data: null });
+    res.status(200).json({ status: 'success' });
   } catch (err) {
     next(err);
   }
@@ -68,7 +67,7 @@ const deleteTweet = async (req, res, next) => {
     }
 
     await Tweet.deleteTweet(tweet);
-    res.status(200).json({ data: null });
+    res.status(200).json({ data: 'null' });
   } catch (err) {
     next(err);
   }

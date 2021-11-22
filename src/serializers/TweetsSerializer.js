@@ -4,7 +4,6 @@ class TweetsSerializer extends BaseSerializer {
   constructor(models, paginationInfo) {
     const serializedModels = models.map((model) => {
       const serializedModel = model.toJSON();
-
       delete serializedModel?.User?.password;
       delete serializedModel?.User?.active;
       delete serializedModel?.User?.role;

@@ -506,22 +506,6 @@ describe('Users routes', () => {
     expect(status).toBe('User not found');
   });
 
-  it('Should find all users', async () => {
-    const response = await request(app)
-      .get('/users')
-      .set('Authorization', `bearer ${adminUserAccessToken}`);
-    const { data, status } = response.body;
-    expect(data.length).not.toBe(0);
-  });
-
-  it('Should not find all users if user is not admin', async () => {
-    const response = await request(app)
-      .get('/users')
-      .set('Authorization', `bearer ${firstUserAccessToken}`);
-    const { status } = response.body;
-    expect(status).toBe('Role not authorized');
-  });
-
   it('Should not delete tweets that the user does not own', async () => {
     const tweetResponse = await request(app)
       .post('/tweets')

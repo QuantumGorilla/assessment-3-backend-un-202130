@@ -17,12 +17,12 @@ const {
 const { authMiddleware } = require('../middlewares/authMiddleware');
 const { paginationMiddleware } = require('../middlewares/paginationMiddleware');
 
-router.get('/', authMiddleware, paginationMiddleware, getAllUsers);
+router.get('/all', authMiddleware, paginationMiddleware, getAllUsers);
 
 router.post('/', createUser);
 router.post('/login', loginUser);
 
-router.get('/:id', authMiddleware, getUserById);
+router.get('/:id', getUserById);
 router.put('/:id', authMiddleware, updateUser);
 router.delete('/:id', authMiddleware, deactivateUser);
 router.post('/update_password', authMiddleware, updatePassword);

@@ -23,7 +23,7 @@ Giovanni Moreno - 200109748
 ```
 
 ## Screenshot Test
-<img src='Screenshots/test.PNG' alt='Test'>
+<img src='Screenshots/tests.PNG' alt='Test'>
 
 ## Screenshot Linter
 <img src='Screenshots/Linter.PNG' alt='Linter'>

@@ -25,14 +25,13 @@ const createTweet = async (req, res, next) => {
 };
 
 const findTweet = async (where) => {
-  const tweet = Tweet.findOne({
+  const tweet = await Tweet.findOne({
     where,
     include: [
       { model: User },
       { model: Comment },
     ],
   });
-
   if (!tweet) {
     throw new ApiError('Tweet not found', 404);
   }
@@ -47,21 +46,6 @@ const getTweetById = async (req, res, next) => {
     const tweet = await findTweet({ id: Number(params.id) });
 
     res.json(new TweetSerializer(tweet));
-  } catch (err) {
-    next(err);
-  }
-};
-
-const getAll = async (req, res, next) => {
-  try {
-    const tweets = await Tweet.findAll({
-      ...req.pagination,
-      include: [
-        { model: User },
-        { model: Comment },
-      ],
-    });
-    res.json(new TweetsSerializer(tweets, await req.getPaginationInfo(Tweet)));
   } catch (err) {
     next(err);
   }
@@ -88,6 +72,7 @@ const likeTweet = async (req, res, next) => {
   try {
     const { params } = req;
     const tweet = await findTweet({ id: Number(params.id) });
+
     tweet.likeCounter += 1;
     await tweet.save();
     res.json(new TweetSerializer(tweet));
@@ -97,43 +82,35 @@ const likeTweet = async (req, res, next) => {
 };
 
 const getAllFeedByUsername = async (req, res, next) => {
-  try {
-    const { params } = req;
-    const tweets = await Tweet.findAll({
-      where: {
-        '$User.username$': params.username,
-      },
-      ...req.pagination,
-      include: [
-        { model: Comment },
-        { model: User },
+  const { params } = req;
+  const tweets = await Tweet.findAll({
+    where: {
+      '$User.username$': params.username,
+    },
+    ...req.pagination,
+    include: [
+      { model: Comment },
+      { model: User },
 
-      ],
-      subQuery: false,
-    });
-    res.json(new TweetsSerializer(tweets, await req.getPaginationInfo(Tweet)));
-  } catch (err) {
-    next(err);
-  }
+    ],
+    subQuery: false,
+  });
+  res.json(new TweetsSerializer(tweets, await req.getPaginationInfo(Tweet)));
 };
 
 const getMyFeed = async (req, res, next) => {
-  try {
-    const tweets = await Tweet.findAll({
-      where: {
-        userId: req.user.id,
-      },
-      ...req.pagination,
-      include: [
-        { model: Comment },
-        { model: User },
-      ],
-      subQuery: false,
-    });
-    res.json(new TweetsSerializer(tweets, await req.getPaginationInfo(Tweet)));
-  } catch (err) {
-    next(err);
-  }
+  const tweets = await Tweet.findAll({
+    where: {
+      userId: req.user.id,
+    },
+    ...req.pagination,
+    include: [
+      { model: Comment },
+      { model: User },
+    ],
+    subQuery: false,
+  });
+  res.json(new TweetsSerializer(tweets, await req.getPaginationInfo(Tweet)));
 };
 
 module.exports = {
@@ -141,8 +118,6 @@ module.exports = {
   deleteTweet,
   getTweetById,
   likeTweet,
-  getAll,
   getAllFeedByUsername,
   getMyFeed,
-
 };

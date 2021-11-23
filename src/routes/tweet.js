@@ -24,6 +24,7 @@ router.get('/all', authMiddleware, paginationMiddleware, getAllUsers);
 tweetsRouter.get('/feed/:username', paginationMiddleware, getAllFeedByUsername);
 tweetsRouter.get('/', authMiddleware, paginationMiddleware, getMyFeed);
 tweetsRouter.post('/', authMiddleware, createTweet);
+
 tweetsRouter.get('/:id', getTweetById);
 tweetsRouter.delete('/:id', authMiddleware, deleteTweet);
 tweetsRouter.post('/:id/likes', authMiddleware, likeTweet);

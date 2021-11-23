@@ -13,6 +13,14 @@ function generateAccessToken(id, role) {
 }
 
 /**
+ * @param {Number} userId
+ * @returns {String}
+ */
+function generatePasswordToken(userId) {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '30m' });
+}
+
+/**
  *
  * @param {String} token
  * @returns {{ id: Number, role: String }}
@@ -24,4 +32,5 @@ function verifyAccessToken(token) {
 module.exports = {
   generateAccessToken,
   verifyAccessToken,
+  generatePasswordToken,
 };

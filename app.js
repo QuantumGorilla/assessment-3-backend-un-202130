@@ -1,5 +1,6 @@
 const express = require('express');
 
+require('dotenv').config();
 const ErrorSerializer = require('./src/serializers/BaseSerializer');
 const usersRouter = require('./src/routes/users');
 const tweetRouter = require('./src/routes/tweet');

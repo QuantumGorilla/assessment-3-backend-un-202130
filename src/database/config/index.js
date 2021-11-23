@@ -1,11 +1,9 @@
+const path = require('path');
+
 module.exports = {
   development: {
-    database: 'trinos',
-    host: '127.0.0.1',
-    dialect: 'postgres',
-    port: '5432',
-    username: 'trinos_user',
-    password: 'root_12345',
+    dialect: 'sqlite',
+    storage: path.join(__dirname, '..', 'database_test.sqlite'),
   },
   test: {
     dialect: 'sqlite',

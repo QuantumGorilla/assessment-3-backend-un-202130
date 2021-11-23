@@ -6,7 +6,7 @@ const { ROLES } = require('../src/config/constants');
 const { generateAccessToken } = require('../src/services/jwt');
 
 const database = require('../src/database');
-const { User } = require('../src/database/models');
+const { User, Tweet } = require('../src/database/models');
 
 const USERS_PATH = '/users';
 
@@ -27,12 +27,14 @@ describe('Users routes', () => {
   let firstUserAccessToken;
   let secondUserAccessToken;
   let adminUserAccessToken;
+  let firstUserId;
 
   beforeAll(async () => {
     await database.init();
 
     const firstUser = await User.create(FIRST_USER);
     firstUserAccessToken = generateAccessToken(firstUser.id, firstUser.role);
+    firstUserId = firstUser.id;
 
     const secondUser = await User.create(Object.assign(FIRST_USER, { active: false }));
     secondUserAccessToken = generateAccessToken(secondUser.id, secondUser.role);
@@ -40,6 +42,8 @@ describe('Users routes', () => {
     const adminUser = await User.create(Object.assign(FIRST_USER, { role: ROLES.admin }));
     adminUserAccessToken = generateAccessToken(adminUser.id, adminUser.role);
   });
+
+  beforeEach(async () => { await Tweet.destroy({ truncate: true, cascade: true }); });
 
   it('Should create user', async () => {
     const payload = {
@@ -115,6 +119,18 @@ describe('Users routes', () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.body.status).toBe('User not found');
+  });
+
+  it('Should update password', async () => {
+    const response = await request(app)
+      .put('/users/update_password')
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({
+        password: 'password',
+        passwordConfirmation: 'password',
+      });
+    const { status } = response.body;
+    expect(status).toBe('success');
   });
 
   it('Should return bad request on get a deactivated user', async () => {
@@ -362,8 +378,10 @@ describe('Users routes', () => {
     const deleteResponse = await request(app)
       .delete(`/tweets/${tweetId}`)
       .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const { status } = deleteResponse.body;
     const result = deleteResponse.status;
     expect(result).toBe(200);
+    expect(status).toBe('success');
   });
 
   it('Should not create a comment if there\'s no text', async () => {
@@ -381,12 +399,55 @@ describe('Users routes', () => {
     expect(status).toBe('Payload must contain text');
   });
 
+  it('Should not create a tweet without text', async () => {
+    const tweetResponse = await request(app)
+      .post('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const { status } = tweetResponse.body;
+    const statusCode = tweetResponse.status;
+    expect(statusCode).toBe(400);
+    expect(status).toBe('Payload must contain text');
+  });
+
+  it('Should not find unexisting tweets', async () => {
+    const findResponse = await request(app)
+      .get('/tweets/99999999');
+    const statusCode = findResponse.status;
+    const { status } = findResponse.body;
+    // expect(statusCode).toBe(404);
+    expect(status).toBe('Tweet not found');
+  });
+
+  it('Should not like unexisting tweets', async () => {
+    const likeRespose = await request(app)
+      .post('/tweets/999999/likes')
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+
+    const { status } = likeRespose.body;
+    const statusCode = likeRespose.status;
+    expect(statusCode).toBe(404);
+    expect(status).toBe('Tweet not found');
+  });
+
   it('Should not comment unexisting tweets', async () => {
     const commentResponse = await request(app)
       .post('/tweets/99999/comments')
-      .set('Authorization', `bearer ${firstUserAccessToken}`);
+      .set('Authorization', `bearer ${firstUserAccessToken}`)
+      .send({ text: 'Lit' });
+    const { status } = commentResponse.body;
     const result = commentResponse.status;
     expect(result).toBe(400);
+    expect(status).toBe('Tweet not found');
+  });
+
+  it('Should not like unexisting comments', async () => {
+    const likeResponse = await request(app)
+      .post('/comments/99999999/likes')
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    // const statusCode = likeResponse.status;
+    const { status } = likeResponse.body;
+    expect(status).toBe('Comment not found');
+    // expect(statusCode).toBe(404);
   });
 
   it('Should not delete unexisting comments', async () => {
@@ -422,12 +483,43 @@ describe('Users routes', () => {
     expect(tweetText).toBe('Hola');
   });
 
-  it('Should not find unexisting tweets', async () => {
-    const tweetId = -999999;
-    const searchResponse = await request(app)
-      .get(`/tweets/${tweetId}`);
-    const { data } = searchResponse.body;
-    expect(data).toBe(null);
+  it('Should find users', async () => {
+    const watame = await User.create({
+      username: 'watame',
+      name: 'わため',
+      email: 'watame@holo.com',
+      password: 'sheep',
+    });
+    const response = await request(app)
+      .get(`/users/${watame.id}`)
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const { data, status } = response.body;
+    expect(status).toBe('success');
+    expect(data.username).toBe('watame');
+  });
+
+  it('Should not find non-existing users', async () => {
+    const response = await request(app)
+      .get('/users/99999')
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const { data, status } = response.body;
+    expect(status).toBe('User not found');
+  });
+
+  it('Should find all users', async () => {
+    const response = await request(app)
+      .get('/users')
+      .set('Authorization', `bearer ${adminUserAccessToken}`);
+    const { data, status } = response.body;
+    expect(data.length).not.toBe(0);
+  });
+
+  it('Should not find all users if user is not admin', async () => {
+    const response = await request(app)
+      .get('/users')
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
+    const { status } = response.body;
+    expect(status).toBe('Role not authorized');
   });
 
   it('Should not delete tweets that the user does not own', async () => {
@@ -439,25 +531,40 @@ describe('Users routes', () => {
     const deleteResponse = await request(app)
       .delete(`/tweets/${tweetId}`)
       .set('Authorization', `bearer ${secondUserAccessToken}`);
+    const { status } = deleteResponse.body;
     const result = deleteResponse.status;
+    expect(status).toBe('you can not delete this tweet');
     expect(result).toBe(403);
   });
 
   it("Should show all user's tweets", async () => {
-    await request(app)
-      .post('/tweets')
-      .set('Authorization', `bearer ${firstUserAccessToken}`)
-      .send({ text: 'Buenos días amiguitos' });
-    await request(app)
-      .post('/tweets')
-      .set('Authorization', `bearer ${firstUserAccessToken}`)
-      .send({ text: 'cómo están' });
-    await request(app)
-      .post('/tweets')
-      .set('Authorization', `bearer ${firstUserAccessToken}`)
-      .send({ text: 'Muy bien!' });
-    const response = await request(app).get(`/tweets/feed/${FIRST_USER.username}`);
+    await Tweet.create({ userId: firstUserId, text: 'Buenos días amiguitos' });
+    await Tweet.create({ userId: firstUserId, text: 'Cómo están?' });
+    await Tweet.create({ userId: firstUserId, text: 'Muy bien!' });
+    const response = await request(app)
+      .get('/tweets')
+      .set('Authorization', `bearer ${firstUserAccessToken}`);
     const { data } = response.body;
     expect(data.length).toBe(3);
+  });
+
+  it("Should show an user's feed", async () => {
+    await Tweet.create({ userId: firstUserId, text: 'awawawawa' });
+    await Tweet.create({ userId: firstUserId, text: 'God please, power' });
+    await Tweet.create({ userId: firstUserId, text: 'Endless hamma' });
+    const response = await request(app)
+      .get(`/tweets/feed/${FIRST_USER.username}`);
+    const { status } = response.body;
+    expect(status).toBe('success');
+  });
+
+  it("Should not show user's feed if no token is providad", async () => {
+    const response = await request(app)
+      .get('/tweets')
+      .set('Authorization', 'aaa');
+    const { status } = response.body;
+    const statusCode = response.status;
+    expect(status).toBe('Access token required');
+    expect(statusCode).toBe(401);
   });
 });

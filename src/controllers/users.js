@@ -1,8 +1,9 @@
 const nodemailer = require('nodemailer');
 const ApiError = require('../utils/ApiError');
 
-const { User } = require('../database/models');
-const { generateAccessToken } = require('../services/jwt');
+const { User, PasswordResets } = require('../database/models');
+const { generateAccessToken, generatePasswordToken, verifyAccessToken } = require('../services/jwt');
+const { transporter } = require('../services/mail');
 
 const UserSerializer = require('../serializers/UserSerializer');
 const AuthSerializer = require('../serializers/AuthSerializer');
@@ -12,12 +13,10 @@ const { ROLES } = require('../config/constants');
 
 const findUser = async (where) => {
   Object.assign(where, { active: true });
-
   const user = await User.findOne({ where });
   if (!user) {
     throw new ApiError('User not found', 400);
   }
-
   return user;
 };
 
@@ -63,9 +62,7 @@ const createUser = async (req, res, next) => {
 const getUserById = async (req, res, next) => {
   try {
     const { params } = req;
-
     const user = await findUser({ id: Number(params.id) });
-
     res.json(new UserSerializer(user));
   } catch (err) {
     next(err);
@@ -147,8 +144,8 @@ const updatePassword = async (req, res, next) => {
     if (body.password !== body.passwordConfirmation) {
       throw new ApiError('Passwords do not match', 400);
     }
-
-    const user = await findUser({ id: req.user.id });
+    const userId = req.user.id;
+    const user = await findUser({ id: userId });
 
     const userPayload = {
       password: body.password,
@@ -159,31 +156,58 @@ const updatePassword = async (req, res, next) => {
     }
 
     Object.assign(user, userPayload);
-
     await user.save();
+    res.json(new UserSerializer(user));
+  } catch (err) {
+    next(err);
+  }
+};
 
-    const mailTransporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: 'admin@gmail.com',
-        pass: 'admin',
-      },
-    });
-
-    const mailDetails = {
-      from: 'admin@gmail.com',
-      to: user.email,
-      subject: 'Password updated successfully',
-      text: 'Your password has been changed. If you haven\'t done this change, please contact us. ',
-    };
-
-    mailTransporter.sendMail(mailDetails, (err, data) => {
-      if (err) {
-        throw new ApiError('Email not found', 404);
+const sendResetPassword = async (req, res, next) => {
+  try {
+    const { username } = req.body;
+    const user = await User.findOne({ where: { username } });
+    if (!user) {
+      throw new ApiError('User not found', 404);
+    }
+    const token = generatePasswordToken(user.id);
+    PasswordResets.create({ token });
+    transporter.sendMail({
+      from: `"Trinos" <${process.env.MAIL_USER}>`,
+      to: `${user.email}`,
+      subject: 'Trinos - Password reset',
+      text: `Your reset token is: ${token}`,
+    }, (error, info) => {
+      if (error) {
+        throw new ApiError('Error when sending email', 500);
+      } else {
+        res.status(200).json({ message: 'email sent' });
       }
     });
+  } catch (err) {
+    next(err);
+  }
+};
 
-    res.json(new UserSerializer(user));
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password, passwordConfirmation } = req.body;
+    if (password !== passwordConfirmation) {
+      throw new ApiError('Passwords do not match', 400);
+    }
+    const tokenDB = await PasswordResets.findOne({ where: { token } });
+    if (!tokenDB) {
+      throw new ApiError('Invalid or expired token', 500);
+    }
+    const { userId } = verifyAccessToken(token);
+    if (!userId) {
+      throw new ApiError('Invalid or expired token', 500);
+    }
+    const user = await findUser({ id: userId });
+    Object.assign(user, { password });
+    await user.save();
+    await tokenDB.destroy();
+    res.status(200).json({ message: 'password resetted' });
   } catch (err) {
     next(err);
   }
@@ -197,4 +221,6 @@ module.exports = {
   loginUser,
   getAllUsers,
   updatePassword,
+  sendResetPassword,
+  resetPassword,
 };

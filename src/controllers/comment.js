@@ -55,43 +55,8 @@ const deleteComment = async (req, res, next) => {
   }
 };
 
-const deleteTweet = async (req, res, next) => {
-  try {
-    const { params } = req;
-    const tweet = await Tweet.findOne({ where: { id: params.id } });
-    if (!tweet) {
-      throw new ApiError('Tweet not found', 400);
-    }
-    if (req.user.id !== tweet.user?.id) {
-      throw new ApiError('you can not delete this tweet', 403);
-    }
-
-    await Tweet.deleteTweet(tweet);
-    res.status(200).json({ data: 'null' });
-  } catch (err) {
-    next(err);
-  }
-};
-
-const likeTweet = async (req, res, next) => {
-  try {
-    const { params } = req;
-    let tweet = await Tweet.findOne({ where: { id: params.id } });
-    if (!tweet) {
-      throw new ApiError('Tweet not found', 400);
-    }
-    tweet = await Tweet.update({ where: { id: params.id } },
-      { likeCounter: tweet.likeCounter + 1 });
-    res.status(200).json({ data: tweet });
-  } catch (err) {
-    next(err);
-  }
-};
-
 module.exports = {
   createComment,
   likeComment,
   deleteComment,
-  deleteTweet,
-  likeTweet,
 };

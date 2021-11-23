@@ -9,7 +9,7 @@ const {
 
 const { authMiddleware } = require('../middlewares/authMiddleware');
 
-Router.post('/:id', authMiddleware, likeComment);
+Router.post('/:id/likes', authMiddleware, likeComment);
 Router.delete('/:id', authMiddleware, deleteComment);
 
 module.exports = Router;
